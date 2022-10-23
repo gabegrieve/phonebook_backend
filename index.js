@@ -58,6 +58,12 @@ app.post("/api/persons", (request, response) => {
       error: "number missing",
     });
   }
+  const duplicateName = persons.filter((p) => p.name === body.name);
+  if (duplicateName.length > 0) {
+    return response.status(409).json({
+      error: "Person already exists",
+    });
+  }
   const person = {
     id: generateId(),
     name: body.name,
