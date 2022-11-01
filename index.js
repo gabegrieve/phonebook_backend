@@ -1,6 +1,8 @@
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const Contact = require("./models/contact");
 
 const app = express();
 
@@ -28,90 +30,53 @@ app.use(
 );
 app.use(express.static("build"));
 
-let persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
-
 app.get("/api/persons", (request, response) => {
-  response.json(persons);
+  Contact.find({}).then((contacts) => {
+    response.json(contacts);
+  });
 });
 
 app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = persons.find((p) => p.id === id);
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+  Contact.findById(request.params.id).then((contact) => {
+    response.json(contact);
+  });
 });
-
-const generateId = () => {
-  let randomInt = Math.floor(Math.random() * 1000);
-  return Date.now() + randomInt;
-};
 
 app.post("/api/persons", (request, response) => {
   const body = request.body;
-  if (!body.name) {
+  if (body.name === undefined) {
     return response.status(400).json({
       error: "name missing",
     });
   }
-  if (!body.number) {
+  if (body.number === undefined) {
     return response.status(400).json({
       error: "number missing",
     });
   }
-  const duplicateName = persons.filter((p) => p.name === body.name);
-  if (duplicateName.length > 0) {
-    return response.status(409).json({
-      error: "Person already exists",
-    });
-  }
-  const person = {
-    id: generateId(),
+  const person = new Contact({
     name: body.name,
     number: body.number,
-  };
-
-  persons = persons.concat(person);
-  response.json(person);
+  });
+  person.save().then((savedPerson) => {
+    response.json(savedPerson);
+  });
 });
 
-app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  persons = persons.filter((p) => p.id !== id);
-  response.status(204).end();
-});
+// app.delete("/api/persons/:id", (request, response) => {
+//   const id = Number(request.params.id);
+//   persons = persons.filter((p) => p.id !== id);
+//   response.status(204).end();
+// });
 
-app.get("/info", (request, response) => {
-  let info = `<p>Phone book has info for ${persons.length} people.</p>`;
-  const timeElapsed = Date.now();
-  const requestTime = new Date(timeElapsed).toUTCString();
-  response.send(info + requestTime);
-});
+// app.get("/info", (request, response) => {
+//   let info = `<p>Phone book has info for ${persons.length} people.</p>`;
+//   const timeElapsed = Date.now();
+//   const requestTime = new Date(timeElapsed).toUTCString();
+//   response.send(info + requestTime);
+// });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
